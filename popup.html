@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Media Links</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+    }
+    ul {
+      padding: 0;
+      list-style: none;
+    }
+    li {
+      background: #f4f4f4;
+      margin: 5px 0;
+      padding: 5px;
+      border-radius: 5px;
+      word-wrap: break-word;
+    }
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    button {
+      margin-top: 10px;
+      padding: 5px 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Media Links</h1>
+  <h2>M3U8 Links</h2>
+  <ul id="m3u8-list"></ul>
+  <h2>Subtitle Links</h2>
+  <ul id="subtitle-list"></ul>
+  <button id="clear">Clear Links</button>
+  <script src="popup.js"></script>
+</body>
+</html>
