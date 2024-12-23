@@ -3,8 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const m3u8List = document.getElementById('m3u8-list');
   const subtitleList = document.getElementById('subtitle-list');
   const clearButton = document.getElementById('clear');
-  const copyAllM3u8Button = document.getElementById('copy-all-m3u8');
-  const copyAllSubtitleButton = document.getElementById('copy-all-subtitles');
+  const themeToggle = document.getElementById('theme-toggle');
 
   // Utility to copy text to clipboard
   const copyToClipboard = (text) => {
@@ -15,69 +14,69 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Load and display saved M3U8 URLs
-  chrome.storage.local.get('m3u8Urls', (data) => {
-    const urls = data.m3u8Urls || [];
-    urls.forEach((url) => {
-      const li = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = url;
-      link.textContent = url;
-      link.target = '_blank';
-      li.appendChild(link);
+  const truncateUrl = (url, maxLength = 50) => {
+    if (url.length <= maxLength) return url;
+    const start = url.substring(0, maxLength / 2);
+    const end = url.substring(url.length - 20);
+    return `${start}...${end}`;
+  };
 
-      // Add "Copy" button
-      const copyButton = document.createElement('button');
-      copyButton.textContent = 'Copy';
-      copyButton.addEventListener('click', () => copyToClipboard(url));
-      li.appendChild(copyButton);
+  const createLinkElement = (url, list, storageKey) => {
+    const li = document.createElement('li');
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.textContent = truncateUrl(url);
+    link.title = url; // Show full URL on hover
+    link.target = '_blank';
+    li.appendChild(link);
 
-      m3u8List.appendChild(li);
+    const buttonGroup = document.createElement('div');
+    buttonGroup.className = 'button-group';
+
+    const copyButton = document.createElement('button');
+    copyButton.textContent = 'Copy';
+    copyButton.addEventListener('click', () => copyToClipboard(url)); // Use full URL for copying
+
+    const removeButton = document.createElement('button');
+    removeButton.textContent = '✕';
+    removeButton.addEventListener('click', () => {
+      chrome.storage.local.get(storageKey, (data) => {
+        const urls = data[storageKey].filter(u => u !== url);
+        chrome.storage.local.set({ [storageKey]: urls }, () => {
+          li.remove();
+        });
+      });
     });
+
+    buttonGroup.appendChild(copyButton);
+    buttonGroup.appendChild(removeButton);
+    li.appendChild(buttonGroup);
+    list.appendChild(li);
+  };
+
+  // Load theme preference
+  chrome.storage.local.get('darkMode', (data) => {
+    if (data.darkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
   });
 
-  // Load and display saved Subtitle URLs
-  chrome.storage.local.get('subtitleUrls', (data) => {
-    const urls = data.subtitleUrls || [];
-    urls.forEach((url) => {
-      const li = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = url;
-      link.textContent = url;
-      link.target = '_blank';
-      li.appendChild(link);
-
-      // Add "Copy" button
-      const copyButton = document.createElement('button');
-      copyButton.textContent = 'Copy';
-      copyButton.addEventListener('click', () => copyToClipboard(url));
-      li.appendChild(copyButton);
-
-      subtitleList.appendChild(li);
-    });
+  // Theme toggle
+  themeToggle.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    chrome.storage.local.set({ darkMode: !isDark });
   });
 
-  // "Copy All" for M3U8
-  copyAllM3u8Button.addEventListener('click', () => {
-    chrome.storage.local.get('m3u8Urls', (data) => {
-      const urls = data.m3u8Urls || [];
-      if (urls.length > 0) {
-        copyToClipboard(urls.join('\n'));
-      } else {
-        alert('No M3U8 links to copy!');
-      }
+  // Load and display saved URLs
+  chrome.storage.local.get(['m3u8Urls', 'subtitleUrls'], (data) => {
+    (data.m3u8Urls || []).forEach(url => {
+      createLinkElement(url, m3u8List, 'm3u8Urls');
     });
-  });
-
-  // "Copy All" for Subtitles
-  copyAllSubtitleButton.addEventListener('click', () => {
-    chrome.storage.local.get('subtitleUrls', (data) => {
-      const urls = data.subtitleUrls || [];
-      if (urls.length > 0) {
-        copyToClipboard(urls.join('\n'));
-      } else {
-        alert('No subtitle links to copy!');
-      }
+    
+    (data.subtitleUrls || []).forEach(url => {
+      createLinkElement(url, subtitleList, 'subtitleUrls');
     });
   });
 

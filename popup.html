@@ -3,10 +3,34 @@
 <head>
   <title>Media Links</title>
   <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --item-bg: #f4f4f4;
+      --button-bg: #007bff;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #1a1a1a;
+      --text-color: #ffffff;
+      --item-bg: #2d2d2d;
+      --button-bg: #0056b3;
+    }
+
     body {
       font-family: Arial, sans-serif;
       margin: 10px;
+      min-width: 400px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
     }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
     ul {
       padding: 0;
       list-style: none;
@@ -14,25 +38,65 @@
     li {
       display: flex;
       align-items: center;
-      background: #f4f4f4;
+      background: var(--item-bg);
       margin: 5px 0;
-      padding: 5px;
+      padding: 8px;
       border-radius: 5px;
       word-wrap: break-word;
     }
+
+    .link-info {
+      flex-grow: 1;
+    }
+
+    .timestamp {
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 5px;
+    }
+
     a {
       flex-grow: 1;
       color: #007bff;
       text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     a:hover {
       text-decoration: underline;
+      position: relative;
     }
+
+    /* Improve tooltip appearance */
+    a[title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      left: 0;
+      bottom: -24px;
+      background: var(--bg-color);
+      padding: 4px 8px;
+      border: 1px solid var(--item-bg);
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: normal;
+      word-break: break-all;
+      z-index: 1000;
+      max-width: 400px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
     button {
       margin-left: 5px;
       padding: 2px 5px;
       font-size: 0.8rem;
-      background-color: #007bff;
+      background-color: var(--button-bg);
       color: white;
       border: none;
       border-radius: 3px;
@@ -44,14 +108,18 @@
   </style>
 </head>
 <body>
-  <h1>Media Links</h1>
+  <div class="header">
+    <h1>Media Links</h1>
+    <button id="theme-toggle">🌓</button>
+  </div>
+
   <h2>M3U8 Links</h2>
-  <button id="copy-all-m3u8">Copy All M3U8</button>
   <ul id="m3u8-list"></ul>
+
   <h2>Subtitle Links</h2>
-  <button id="copy-all-subtitles">Copy All Subtitles</button>
   <ul id="subtitle-list"></ul>
-  <button id="clear">Clear Links</button>
+
+  <button id="clear">Clear All Links</button>
   <script src="popup.js"></script>
 </body>
 </html>
