@@ -1,45 +1,42 @@
 // background.js
-chrome.webRequest.onHeadersReceived.addListener(
+chrome.webRequest.onBeforeRequest.addListener(
   function (details) {
     const subtitleExtensions = ['.vtt', '.srt', '.sub', '.ass'];
-    const isSubtitleExtension = subtitleExtensions.some((ext) => details.url.endsWith(ext));
+    const isSubtitle = subtitleExtensions.some((ext) => details.url.endsWith(ext));
+    const isM3U8 = details.url.endsWith('.m3u8');
 
-    // Check if the Content-Type is application/octet-stream
-    const contentTypeHeader = details.responseHeaders.find(
-      (header) => header.name.toLowerCase() === 'content-type'
-    );
-
-    const isSubtitleMimeType = contentTypeHeader && contentTypeHeader.value.includes('application/octet-stream');
-
-    if (isSubtitleExtension || isSubtitleMimeType) {
-      console.log('Detected subtitle request:', details.url);
+    if (isM3U8 || isSubtitle) {
+      console.log('Detected media request:', details.url);
 
       // Save the URL in storage
-      chrome.storage.local.get('subtitleUrls', (data) => {
-        const urls = data.subtitleUrls || [];
+      const storageKey = isM3U8 ? 'm3u8Urls' : 'subtitleUrls';
+      chrome.storage.local.get(storageKey, (data) => {
+        const urls = data[storageKey] || [];
         if (!urls.includes(details.url)) {
           urls.push(details.url);
-          chrome.storage.local.set({ subtitleUrls: urls });
+          chrome.storage.local.set({ [storageKey]: urls });
         }
       });
     }
   },
   { urls: ['<all_urls>'] },
-  ['responseHeaders']
+  ['requestBody']
 );
 
-chrome.webRequest.onBeforeRequest.addListener(
+// Also listen for completed requests to catch cached responses
+chrome.webRequest.onCompleted.addListener(
   function (details) {
-    const isM3U8 = details.url.endsWith('.m3u8');
-    if (isM3U8) {
-      console.log('Detected M3U8 request:', details.url);
-
-      // Save the URL in storage
-      chrome.storage.local.get('m3u8Urls', (data) => {
-        const urls = data.m3u8Urls || [];
+    const subtitleExtensions = ['.vtt', '.srt', '.sub', '.ass'];
+    const isSubtitle = subtitleExtensions.some((ext) => details.url.endsWith(ext));
+    
+    if (isSubtitle) {
+      console.log('Detected completed subtitle request:', details.url, 'FromCache:', details.fromCache);
+      
+      chrome.storage.local.get('subtitleUrls', (data) => {
+        const urls = data.subtitleUrls || [];
         if (!urls.includes(details.url)) {
           urls.push(details.url);
-          chrome.storage.local.set({ m3u8Urls: urls });
+          chrome.storage.local.set({ subtitleUrls: urls });
         }
       });
     }

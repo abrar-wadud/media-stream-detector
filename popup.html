@@ -12,6 +12,8 @@
       list-style: none;
     }
     li {
+      display: flex;
+      align-items: center;
       background: #f4f4f4;
       margin: 5px 0;
       padding: 5px;
@@ -19,6 +21,7 @@
       word-wrap: break-word;
     }
     a {
+      flex-grow: 1;
       color: #007bff;
       text-decoration: none;
     }
@@ -26,12 +29,13 @@
       text-decoration: underline;
     }
     button {
-      margin-top: 10px;
-      padding: 5px 10px;
+      margin-left: 5px;
+      padding: 2px 5px;
+      font-size: 0.8rem;
       background-color: #007bff;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 3px;
       cursor: pointer;
     }
     button:hover {
@@ -42,8 +46,10 @@
 <body>
   <h1>Media Links</h1>
   <h2>M3U8 Links</h2>
+  <button id="copy-all-m3u8">Copy All M3U8</button>
   <ul id="m3u8-list"></ul>
   <h2>Subtitle Links</h2>
+  <button id="copy-all-subtitles">Copy All Subtitles</button>
   <ul id="subtitle-list"></ul>
   <button id="clear">Clear Links</button>
   <script src="popup.js"></script>
