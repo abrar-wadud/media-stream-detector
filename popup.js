@@ -35,11 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
     buttonGroup.className = 'button-group';
 
     const copyButton = document.createElement('button');
-    copyButton.textContent = 'Copy';
+    copyButton.textContent = 'Copy \uD83D\uDCCB';
     copyButton.addEventListener('click', () => copyToClipboard(url)); // Use full URL for copying
 
     const removeButton = document.createElement('button');
-    removeButton.textContent = '✕';
+    removeButton.textContent = 'Clear \u274C';
     removeButton.addEventListener('click', () => {
       chrome.storage.local.get(storageKey, (data) => {
         const urls = data[storageKey].filter(u => u !== url);
