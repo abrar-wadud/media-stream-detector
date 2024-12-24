@@ -1,6 +1,19 @@
 // background.js
-chrome.webRequest.onBeforeRequest.addListener(
+var browser = browser || chrome;
+
+// Add state management
+let isMonitoring = false;
+
+browserAPI.runtime.onMessage.addListener((message) => {
+  if (message.type === 'toggleMonitoring') {
+    isMonitoring = message.isRunning;
+  }
+});
+
+browserAPI.webRequest.onBeforeRequest.addListener(
   function (details) {
+    if (!isMonitoring) return;
+
     const subtitleExtensions = ['.vtt', '.srt', '.sub', '.ass'];
     const isSubtitle = subtitleExtensions.some((ext) => details.url.endsWith(ext));
     const isM3U8 = details.url.endsWith('.m3u8');
@@ -10,11 +23,11 @@ chrome.webRequest.onBeforeRequest.addListener(
 
       // Save the URL in storage
       const storageKey = isM3U8 ? 'm3u8Urls' : 'subtitleUrls';
-      chrome.storage.local.get(storageKey, (data) => {
+      browserAPI.storage.local.get(storageKey).then((data) => {
         const urls = data[storageKey] || [];
         if (!urls.includes(details.url)) {
           urls.push(details.url);
-          chrome.storage.local.set({ [storageKey]: urls });
+          browserAPI.storage.local.set({ [storageKey]: urls });
         }
       });
     }
@@ -24,22 +37,34 @@ chrome.webRequest.onBeforeRequest.addListener(
 );
 
 // Also listen for completed requests to catch cached responses
-chrome.webRequest.onCompleted.addListener(
+browserAPI.webRequest.onCompleted.addListener(
   function (details) {
+    if (!isMonitoring) return;
+
     const subtitleExtensions = ['.vtt', '.srt', '.sub', '.ass'];
     const isSubtitle = subtitleExtensions.some((ext) => details.url.endsWith(ext));
     
     if (isSubtitle) {
       console.log('Detected completed subtitle request:', details.url, 'FromCache:', details.fromCache);
       
-      chrome.storage.local.get('subtitleUrls', (data) => {
+      browserAPI.storage.local.get('subtitleUrls').then((data) => {
         const urls = data.subtitleUrls || [];
         if (!urls.includes(details.url)) {
           urls.push(details.url);
-          chrome.storage.local.set({ subtitleUrls: urls });
+          browserAPI.storage.local.set({ subtitleUrls: urls });
         }
       });
     }
   },
   { urls: ['<all_urls>'] }
 );
+
+browserAPI.runtime.onInstalled.addListener(function() {
+  // Initialize storage with running state
+  browserAPI.storage.local.set({
+    m3u8Urls: [],
+    subtitleUrls: [],
+    darkMode: false,
+    isRunning: false
+  });
+});

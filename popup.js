@@ -1,90 +1,98 @@
-// popup.js
 document.addEventListener('DOMContentLoaded', () => {
-  const m3u8List = document.getElementById('m3u8-list');
-  const subtitleList = document.getElementById('subtitle-list');
-  const clearButton = document.getElementById('clear');
-  const themeToggle = document.getElementById('theme-toggle');
-
-  // Utility to copy text to clipboard
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Copied to clipboard!');
-    }).catch((err) => {
-      console.error('Failed to copy: ', err);
-    });
+  const lists = {
+    m3u8: document.getElementById('m3u8-list'),
+    subtitle: document.getElementById('subtitle-list')
+  };
+  const toast = document.getElementById('toast');
+  
+  const notify = msg => {
+    toast.textContent = msg;
+    toast.className = 'toast show';
+    setTimeout(() => toast.className = 'toast', 2000);
   };
 
-  const truncateUrl = (url, maxLength = 50) => {
-    if (url.length <= maxLength) return url;
-    const start = url.substring(0, maxLength / 2);
-    const end = url.substring(url.length - 20);
-    return `${start}...${end}`;
-  };
-
-  const createLinkElement = (url, list, storageKey) => {
+  const createLink = (url, list, type) => {
     const li = document.createElement('li');
+    const span = document.createElement('span');
+    span.className = 'url';
+    span.title = url;
+    span.textContent = url.split('/').pop();
     
-    const link = document.createElement('a');
-    link.href = url;
-    link.textContent = truncateUrl(url);
-    link.title = url; // Show full URL on hover
-    link.target = '_blank';
-    li.appendChild(link);
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    
+    const copy = document.createElement('button');
+    copy.innerHTML = '\uD83D\uDCC4';
+    copy.title = 'Copy URL';
+    copy.onclick = () => {
+      navigator.clipboard.writeText(url)
+        .then(() => notify('Copied'))
+        .catch(() => notify('Copy failed'));
+    };
 
-    const buttonGroup = document.createElement('div');
-    buttonGroup.className = 'button-group';
-
-    const copyButton = document.createElement('button');
-    copyButton.textContent = 'Copy \uD83D\uDCCB';
-    copyButton.addEventListener('click', () => copyToClipboard(url)); // Use full URL for copying
-
-    const removeButton = document.createElement('button');
-    removeButton.textContent = 'Clear \u274C';
-    removeButton.addEventListener('click', () => {
-      chrome.storage.local.get(storageKey, (data) => {
-        const urls = data[storageKey].filter(u => u !== url);
-        chrome.storage.local.set({ [storageKey]: urls }, () => {
-          li.remove();
-        });
+    const remove = document.createElement('button');
+    remove.innerHTML = '\uD83D\uDDD1';
+    remove.title = 'Remove';
+    remove.onclick = () => {
+      browserAPI.storage.local.get(`${type}Urls`).then(data => {
+        const urls = data[`${type}Urls`].filter(u => u !== url);
+        browserAPI.storage.local.set({ [`${type}Urls`]: urls })
+          .then(() => li.remove());
       });
-    });
+    };
 
-    buttonGroup.appendChild(copyButton);
-    buttonGroup.appendChild(removeButton);
-    li.appendChild(buttonGroup);
+    actions.append(copy, remove);
+    li.append(span, actions);
     list.appendChild(li);
   };
 
-  // Load theme preference
-  chrome.storage.local.get('darkMode', (data) => {
-    if (data.darkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-  });
-
   // Theme toggle
-  themeToggle.addEventListener('click', () => {
+  document.getElementById('theme-toggle').onclick = () => {
+    const themeBtn = document.getElementById('theme-toggle');
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    chrome.storage.local.set({ darkMode: !isDark });
-  });
+    themeBtn.textContent = isDark ? '\uD83C\uDF1E' : '\uD83C\uDF1A';
+    browserAPI.storage.local.set({ darkMode: !isDark });
+  };
 
-  // Load and display saved URLs
-  chrome.storage.local.get(['m3u8Urls', 'subtitleUrls'], (data) => {
-    (data.m3u8Urls || []).forEach(url => {
-      createLinkElement(url, m3u8List, 'm3u8Urls');
-    });
+  // Monitor toggle
+  const statusBtn = document.getElementById('status-toggle');
+  const updateStatusButton = (isRunning) => {
+    const icon = statusBtn.querySelector('.icon');
+    const text = statusBtn.querySelector('.text');
     
-    (data.subtitleUrls || []).forEach(url => {
-      createLinkElement(url, subtitleList, 'subtitleUrls');
-    });
-  });
+    icon.textContent = isRunning ? '\u23F9' : '\u25B6';
+    text.textContent = isRunning ? 'Stop' : 'Start';
+    statusBtn.className = `monitor ${isRunning ? 'running' : 'stopped'}`;
+  };
 
-  // Clear stored URLs
-  clearButton.addEventListener('click', () => {
-    chrome.storage.local.set({ m3u8Urls: [], subtitleUrls: [] }, () => {
-      m3u8List.innerHTML = '';
-      subtitleList.innerHTML = '';
+  statusBtn.onclick = () => {
+    browserAPI.storage.local.get('isRunning').then(data => {
+      const newStatus = !data.isRunning;
+      browserAPI.storage.local.set({ isRunning: newStatus });
+      updateStatusButton(newStatus);
+      browserAPI.runtime.sendMessage({ type: 'toggleMonitoring', isRunning: newStatus });
     });
-  });
+  };
+
+  // Load saved URLs
+  browserAPI.storage.local.get(['m3u8Urls', 'subtitleUrls', 'darkMode', 'isRunning'])
+    .then(data => {
+      if (data.darkMode) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      updateStatusButton(data.isRunning);
+      
+      data.m3u8Urls?.forEach(url => createLink(url, lists.m3u8, 'm3u8'));
+      data.subtitleUrls?.forEach(url => createLink(url, lists.subtitle, 'subtitle'));
+    });
+
+  // Clear all
+  document.getElementById('clear').onclick = () => {
+    browserAPI.storage.local.set({ m3u8Urls: [], subtitleUrls: [] }).then(() => {
+      lists.m3u8.innerHTML = '';
+      lists.subtitle.innerHTML = '';
+      notify('Cleared');
+    });
+  };
 });
