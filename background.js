@@ -15,8 +15,9 @@ browserAPI.webRequest.onBeforeRequest.addListener(
     if (!isMonitoring) return;
 
     const subtitleExtensions = ['.vtt', '.srt', '.sub', '.ass'];
-    const isSubtitle = subtitleExtensions.some((ext) => details.url.endsWith(ext));
-    const isM3U8 = details.url.endsWith('.m3u8');
+    const isSubtitle = subtitleExtensions.some((ext) => details.url.includes(ext));
+    const m3u8Extensions = ['master.txt', 'master.m3u8']
+    const isM3U8 = m3u8Extensions.some((ext) => details.url.includes(ext));
 
     if (isM3U8 || isSubtitle) {
       console.log('Detected media request:', details.url);
