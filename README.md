@@ -13,7 +13,7 @@ Media Stream Detector is a browser extension that detects and collects M3U8 stre
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/abrar-wadud/media-stream-detector.git
+    git clone https://github.com/dark-f1are/media-stream-detector.git
     cd media-stream-detector
     ```
 
